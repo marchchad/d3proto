@@ -1,0 +1,23 @@
+#workspace {
+  background-color: #ffffff;
+  font: 10px sans-serif;
+  text-shadow: none;
+  float: left;
+}
+#workspace .total{
+  font-size: 18px;
+  font-weight: bold;
+}
+#workspace .units{
+  fill: gray;
+  font-size: 12px;
+}
+#workspace .label{
+  fill: #CCC;
+  font-size: 12px;
+  font-weight: bold;
+}
+#workspace .value{
+  font-size: 12px;
+  font-weight: bold;
+}
