@@ -5,12 +5,16 @@ var pieData = [];
 var oldPieData = [];
 var filteredPieData = [];
 var arc;
-var w = 450;
-var h = 300;
-var r = 100;
-var ir = 60;
+var width = 450;
+var height = 300;
+var radius = 100;
+var innerRadius = 60;
 var textOffset = 14;
 var tweenDuration = 500;
+
+///////////////////////////////////////////////////////////
+// FUNCTIONS //////////////////////////////////////////////
+///////////////////////////////////////////////////////////
 
 function fillArray() {
   var arrayRange = 100; //range of potential values for each item
@@ -19,11 +23,6 @@ function fillArray() {
     octetTotalCount: Math.ceil(Math.random() * (arrayRange))
   };
 }
-
-
-///////////////////////////////////////////////////////////
-// FUNCTIONS //////////////////////////////////////////////
-///////////////////////////////////////////////////////////
 
 // Interpolate the arcs in data space.
 function pieTween(d, i) {
@@ -50,6 +49,8 @@ function pieTween(d, i) {
 
   return function(t) {
     var b = inter(t);
+    console.log(b);
+    console.log(arc(b));
     return arc(b);
   };
 }
@@ -73,7 +74,7 @@ function textTween(d, i) {
   var fn = d3.interpolateNumber(a, b);
   return function(t) {
     var val = fn(t);
-    return "translate(" + Math.cos(val) * (r + textOffset) + "," + Math.sin(val) * (r + textOffset) + ")";
+    return "translate(" + Math.cos(val) * (radius + textOffset) + "," + Math.sin(val) * (radius + textOffset) + ")";
   };
 }
 
@@ -93,37 +94,37 @@ document.addEventListener("DOMContentLoaded", function(){
   arc = d3.svg.arc()
     .startAngle(function(d){ return d.startAngle; })
     .endAngle(function(d){ return d.endAngle; })
-    .innerRadius(ir)
-    .outerRadius(r);
+    .innerRadius(innerRadius)
+    .outerRadius(radius);
 
   var vis = d3.select("#workspace").append("svg:svg")
-    .attr("width", w)
-    .attr("height", h);
+    .attr("width", width)
+    .attr("height", height);
 
   //GROUP FOR ARCS/PATHS
   var arc_group = vis.append("svg:g")
     .attr("class", "arc")
-    .attr("transform", "translate(" + (w / 2) + "," + (h / 2) + ")");
+    .attr("transform", "translate(" + (width / 2) + "," + (height / 2) + ")");
 
   //GROUP FOR LABELS
   var label_group = vis.append("svg:g")
     .attr("class", "label_group")
-    .attr("transform", "translate(" + (w / 2) + "," + (h / 2) + ")");
+    .attr("transform", "translate(" + (width / 2) + "," + (height / 2) + ")");
 
   //GROUP FOR CENTER TEXT  
   var center_group = vis.append("svg:g")
     .attr("class", "center_group")
-    .attr("transform", "translate(" + (w / 2) + "," + (h / 2) + ")");
+    .attr("transform", "translate(" + (width / 2) + "," + (height / 2) + ")");
 
   //PLACEHOLDER GRAY CIRCLE
   var paths = arc_group.append("svg:circle")
       .attr("fill", "#EFEFEF")
-      .attr("r", r);
+      .attr("r", radius);
 
   //WHITE CIRCLE BEHIND LABELS
   var whiteCircle = center_group.append("svg:circle")
     .attr("fill", "white")
-    .attr("r", ir);
+    .attr("r", innerRadius);
 
   // "TOTAL" LABEL
   var totalLabel = center_group.append("svg:text")
@@ -146,16 +147,16 @@ document.addEventListener("DOMContentLoaded", function(){
     .attr("text-anchor", "middle") // text-align: right
     .text("kb");
 
-  var streakerDataAdded = d3.range(getRandomInt(3, 7)).map(fillArray);
+  var streakerDataAdded = d3.range(getRandomInt(1,3)).map(fillArray);
   var totalOctets = 0;
-  var pieData = donut(streakerDataAdded);
+  var items = donut(streakerDataAdded);
   //REMOVE PLACEHOLDER CIRCLE
   arc_group.selectAll("circle").remove();
-  filteredPieData = pieData.filter(filterData);
+  filteredPieData = items.filter(filterData);
 
   function filterData(element, index, array) {
-    element.name = streakerDataAdded[index].port;
-    element.value = streakerDataAdded[index].octetTotalCount;
+    element.name = array[index].data.port;
+    element.value = array[index].data.octetTotalCount;
     totalOctets += element.value;
     return (element.value > 0);
   }
@@ -171,18 +172,11 @@ document.addEventListener("DOMContentLoaded", function(){
   paths.enter().append("svg:path")
     .attr("stroke", "white")
     .attr("stroke-width", 0.5)
-    .attr("fill", function(d, i) { return color(i); })
-    .transition()
+    .attr("fill", function(d, i) { return color(i); });
+
+  paths.transition()
       .duration(tweenDuration)
       .attrTween("d", pieTween);
-  paths
-    .transition()
-      .duration(tweenDuration)
-      .attrTween("d", pieTween);
-  paths.exit()
-    .transition()
-      .duration(tweenDuration)
-    .remove();
 
   //DRAW TICK MARK LINES FOR LABELS
   lines = label_group.selectAll("line").data(filteredPieData);
@@ -190,19 +184,17 @@ document.addEventListener("DOMContentLoaded", function(){
   lines.enter().append("svg:line")
     .attr("x1", 0)
     .attr("x2", 0)
-    .attr("y1", -r - 3)
-    .attr("y2", -r - 8)
-    .attr("stroke", "gray")
-    .attr("transform", function(d) {
-      return "rotate(" + (d.startAngle + d.endAngle) / 2 * (180 / Math.PI) + ")";
-    });
+    .attr("y1", -radius - 3)
+    .attr("y2", -radius - 8)
+    .attr("stroke", "gray");
 
   lines.transition()
     .duration(tweenDuration)
     .attr("transform", function(d) {
       return "rotate(" + (d.startAngle + d.endAngle) / 2 * (180 / Math.PI) + ")";
     });
-  lines.exit().remove();
+
+  //lines.exit().remove();
 
   //DRAW LABELS WITH PERCENTAGE VALUES
   valueLabels = label_group.selectAll("text.value").data(filteredPieData)
@@ -228,7 +220,7 @@ document.addEventListener("DOMContentLoaded", function(){
   valueLabels.enter().append("svg:text")
     .attr("class", "value")
     .attr("transform", function(d) {
-      return "translate(" + Math.cos(((d.startAngle + d.endAngle - Math.PI) / 2)) * (r + textOffset) + "," + Math.sin((d.startAngle + d.endAngle - Math.PI) / 2) * (r + textOffset) + ")";
+      return "translate(" + Math.cos(((d.startAngle + d.endAngle - Math.PI) / 2)) * (radius + textOffset) + "," + Math.sin((d.startAngle + d.endAngle - Math.PI) / 2) * (radius + textOffset) + ")";
     })
     .attr("dy", function(d){
       if ((d.startAngle + d.endAngle) / 2 > Math.PI / 2 && (d.startAngle + d.endAngle) / 2 < Math.PI * 1.5 ) {
@@ -248,9 +240,11 @@ document.addEventListener("DOMContentLoaded", function(){
       return percentage.toFixed(1) + "%";
     });
 
-  valueLabels.transition().duration(tweenDuration).attrTween("transform", textTween);
+  valueLabels.transition()
+    .duration(tweenDuration)
+    .attrTween("transform", textTween);
 
-  valueLabels.exit().remove();
+  //valueLabels.exit().remove();
 
   //DRAW LABELS WITH ENTITY NAMES
   nameLabels = label_group.selectAll("text.units").data(filteredPieData)
@@ -274,7 +268,7 @@ document.addEventListener("DOMContentLoaded", function(){
   nameLabels.enter().append("svg:text")
     .attr("class", "units")
     .attr("transform", function(d) {
-      return "translate(" + Math.cos(((d.startAngle + d.endAngle - Math.PI) / 2)) * (r + textOffset) + "," + Math.sin((d.startAngle + d.endAngle - Math.PI) / 2) * (r + textOffset) + ")";
+      return "translate(" + Math.cos(((d.startAngle + d.endAngle - Math.PI) / 2)) * (radius + textOffset) + "," + Math.sin((d.startAngle + d.endAngle - Math.PI) / 2) * (radius + textOffset) + ")";
     })
     .attr("dy", function(d){
       if ((d.startAngle + d.endAngle) / 2 > Math.PI / 2 && (d.startAngle + d.endAngle) / 2 < Math.PI * 1.5 ) {
@@ -293,7 +287,9 @@ document.addEventListener("DOMContentLoaded", function(){
       return d.name;
     });
 
-  nameLabels.transition().duration(tweenDuration).attrTween("transform", textTween);
+  nameLabels.transition()
+    .duration(tweenDuration)
+    .attrTween("transform", textTween);
 
-  nameLabels.exit().remove();
+  //nameLabels.exit().remove();
 });
